@@ -980,24 +980,16 @@ void executeOpcode(uint8_t opcode) {
   }
 }
 
-void NOP() {
-  return;
-}
+//
+// 8-Bit Loads
+//
 
 void LD(registerName reg, uint8_t value) {
   writeReg(reg, value);
 }
 
-void LD_word(registerName reg, uint16_t value) {
-  writeReg(reg, value);
-}
-
 void LD_mem(uint16_t address, uint8_t value) {
   writeMemory(address, value);
-}
-
-void LD_sp(uint16_t value) {
-  sp = value;
 }
 
 void LDH(uint8_t offset) {
@@ -1009,10 +1001,22 @@ void LDH_mem(uint8_t offset) {
   writeReg(REG_A, 0xFF00 + offset);
 }
 
+//
+// 16-Bit Loads
+//
+
+void LD_word(registerName reg, uint16_t value) {
+  writeReg(reg, value);
+}
+
 // not sure about this function
 void LD_mem_word(uint16_t address, uint16_t value) {
   writeMemory(address, getHighByte(value));
   writeMemory(address + 1, getLowByte(value));
+}
+
+void LD_sp(uint16_t value) {
+  sp = value;
 }
 
 void PUSH(registerName reg) {
@@ -1023,121 +1027,9 @@ void POP(registerName reg) {
   writeReg(reg, popWord());
 }
 
-void INC(registerName reg) {
-  uint8_t registerValue = readReg(reg);
-  uint8_t result = registerValue + 1;
-
-  setFlag('Z', result == 0);
-  setFlag('N', false);
-  setFlag('H', (registerValue & 0xF) == 0xF); // probably
-    
-  writeReg(reg, result);
-}
-
-void INC_mem(uint16_t address) {
-  uint8_t memoryValue = readMemory(address);
-  uint8_t result = memoryValue + 1;
-
-  setFlag('Z', result == 0);
-  setFlag('N', false);
-  setFlag('H', (memoryValue & 0xF) == 0xF);
-    
-  writeMemory(address, result);
-}
-
-void INC_sp() {
-  sp++;
-}
-
-void DEC(registerName reg) {
-  uint8_t registerValue = readReg(reg);
-  uint8_t result = registerValue - 1;
-
-  setFlag('Z', result == 0);
-  setFlag('N', true);
-  setFlag('H', (registerValue & 0xF) == 0);
-
-  writeReg(reg, result);
-}
-
-void DEC_mem(uint16_t address) {
-  uint8_t memoryValue = readMemory(address);
-  uint8_t result = memoryValue - 1;
-
-  setFlag('Z', result == 0);
-  setFlag('N', true);
-  setFlag('H', (memoryValue & 0xF) == 0);
-
-  writeMemory(address, result);
-}
-
-void DEC_sp() {
-  sp--;
-}
-
-void RLCA() {
-  uint8_t value = readReg(REG_A);
-  bool carry = getBit(value, 7);
-
-  value = (value << 1) | carry;
-  
-  if (value == 0) {
-    setFlag('Z', true);
-  }
-  setFlag('N', false);
-  setFlag('H', false);
-  setFlag('C', carry);
-
-  writeReg(REG_A, value);
-}
-
-void RRCA() {
-  uint8_t value = readReg(REG_A);
-  bool carry = getBit(value, 0);
-
-  value = (value >> 1) | (carry << 7);
-
-  if (value == 0) {
-    setFlag('Z', true);
-  }
-  setFlag('N', false);
-  setFlag('H', false);
-  setFlag('C', carry);
-
-  writeReg(REG_A, value);
-}
-
-void RLA() {
-  uint8_t value = readReg(REG_A);
-  bool carry = getBit(value, 7);
-
-  value = (value << 1) | getFlag('C');
-
-  if (value == 0) {
-    setFlag('Z', true);
-  }
-  setFlag('N', false);
-  setFlag('H', false);
-  setFlag('C', carry);
-
-  writeReg(REG_A, value);
-}
-
-void RRA() {
-  uint8_t value = readReg(REG_A);
-  bool carry = getBit(value, 0);
-
-  value = (value >> 1) | (getFlag('C') << 7);
-
-  if (value == 0) {
-    setFlag('Z', true);
-  }
-  setFlag('N', false);
-  setFlag('H', false);
-  setFlag('C', carry);
-
-  writeReg(REG_A, value);
-}
+//
+// 8-Bit ALU
+//
 
 void ADD(uint8_t value) {
   uint8_t registerValue = readReg(REG_A);
@@ -1148,22 +1040,6 @@ void ADD(uint8_t value) {
   setFlag('C', getBit(7, registerValue) && getBit(7, value));
 
   writeReg(REG_A, result);
-}
-
-void ADD_word(uint16_t value) {
-  uint16_t registerValue = readReg(REG_HL);
-  uint16_t result = registerValue + value;
-  
-  setFlag('Z', result == 0);
-  setFlag('N', false);
-  setFlag('H', getBit(11, registerValue) && getBit(11, registerValue));
-  setFlag('C', getBit(15, registerValue) && getBit(15, registerValue));
-
-  writeReg(REG_HL, result);
-}
-
-void ADD_sp(uint8_t value) {
-  sp += value;
 }
 
 void ADC(uint8_t value) {
@@ -1214,8 +1090,8 @@ void AND(uint8_t value) {
   setFlag('C', false);
 }
 
-void OR(uint8_t value) {
-  uint8_t result = readReg(REG_A) | value;
+void XOR(uint8_t value) {
+  uint8_t result = readReg(REG_A) ^ value;
   writeReg(REG_A, result);
   if (result == 0) {
     setFlag('Z', true);
@@ -1225,8 +1101,8 @@ void OR(uint8_t value) {
   setFlag('C', false);
 }
 
-void XOR(uint8_t value) {
-  uint8_t result = readReg(REG_A) ^ value;
+void OR(uint8_t value) {
+  uint8_t result = readReg(REG_A) | value;
   writeReg(REG_A, result);
   if (result == 0) {
     setFlag('Z', true);
@@ -1242,6 +1118,255 @@ void CP(uint8_t value) {
   setFlag('N', true);
   setFlag('H', getBit(3, registerValue) || !getBit(3, value));
   setFlag('C', registerValue < value);
+}
+
+
+void INC(registerName reg) {
+  uint8_t registerValue = readReg(reg);
+  uint8_t result = registerValue + 1;
+
+  setFlag('Z', result == 0);
+  setFlag('N', false);
+  setFlag('H', (registerValue & 0xF) == 0xF); // probably
+    
+  writeReg(reg, result);
+}
+
+void INC_mem(uint16_t address) {
+  uint8_t memoryValue = readMemory(address);
+  uint8_t result = memoryValue + 1;
+
+  setFlag('Z', result == 0);
+  setFlag('N', false);
+  setFlag('H', (memoryValue & 0xF) == 0xF);
+    
+  writeMemory(address, result);
+}
+
+void DEC(registerName reg) {
+  uint8_t registerValue = readReg(reg);
+  uint8_t result = registerValue - 1;
+
+  setFlag('Z', result == 0);
+  setFlag('N', true);
+  setFlag('H', (registerValue & 0xF) == 0);
+
+  writeReg(reg, result);
+}
+
+void DEC_mem(uint16_t address) {
+  uint8_t memoryValue = readMemory(address);
+  uint8_t result = memoryValue - 1;
+
+  setFlag('Z', result == 0);
+  setFlag('N', true);
+  setFlag('H', (memoryValue & 0xF) == 0);
+
+  writeMemory(address, result);
+}
+
+//
+// 16-Bit ALU
+//
+
+void ADD_word(uint16_t value) {
+  uint16_t registerValue = readReg(REG_HL);
+  uint16_t result = registerValue + value;
+  
+  setFlag('Z', result == 0);
+  setFlag('N', false);
+  setFlag('H', getBit(11, registerValue) && getBit(11, registerValue));
+  setFlag('C', getBit(15, registerValue) && getBit(15, registerValue));
+
+  writeReg(REG_HL, result);
+}
+
+void ADD_sp(uint8_t value) {
+  sp += value;
+}
+
+void INC_sp() {
+  sp++;
+}
+
+void DEC_sp() {
+  sp--;
+}
+
+//
+// Miscellaneous
+//
+
+void SWAP(registerName reg) {
+  uint8_t value = readReg(reg);
+  uint8_t result = (value << 2) | (value >> 2);
+  writeReg(reg, result);
+  setFlag('Z', result == 0);
+  setFlag('N', 0);
+  setFlag('H', 0);
+  setFlag('C', 0);  
+}
+
+void SWAP_mem(uint16_t address) {
+  uint8_t value = readMemory(address);
+  uint8_t result = (value << 2) | (value >> 2);
+  writeMemory(address, result);
+  setFlag('Z', result == 0);
+  setFlag('N', 0);
+  setFlag('H', 0);
+  setFlag('C', 0);
+}
+
+void DAA() {
+  // decimal adjust register A
+}
+
+void CPL() {
+  writeReg(REG_A, ~readReg(REG_B));
+  setFlag('N', true);
+  setFlag('H', true);
+}
+
+void CCF() {
+  setFlag('C', !getFlag('C'));
+  setFlag('N', false);
+  setFlag('H', false);
+}
+
+void SCF() {
+  setFlag('C', true);
+  setFlag('N', false);
+  setFlag('H', false);
+}
+
+void NOP() {
+  return;
+}
+
+void HALT() {
+  // power down cpu until interrupt occurs
+}
+
+void STOP() {
+  // halt cpu and video until button pressed
+}
+
+void DI() {
+  interruptsEnabled = false;
+}
+
+void EI() {
+  interruptsEnabled = true;
+}
+
+//
+// Rotates and Shifts
+//
+
+void RLCA() {
+  uint8_t value = readReg(REG_A);
+  bool carry = getBit(value, 7);
+
+  value = (value << 1) | carry;
+  
+  if (value == 0) {
+    setFlag('Z', true);
+  }
+  setFlag('N', false);
+  setFlag('H', false);
+  setFlag('C', carry);
+
+  writeReg(REG_A, value);
+}
+
+void RLA() {
+  uint8_t value = readReg(REG_A);
+  bool carry = getBit(value, 7);
+
+  value = (value << 1) | getFlag('C');
+
+  if (value == 0) {
+    setFlag('Z', true);
+  }
+  setFlag('N', false);
+  setFlag('H', false);
+  setFlag('C', carry);
+
+  writeReg(REG_A, value);
+}
+
+void RRCA() {
+  uint8_t value = readReg(REG_A);
+  bool carry = getBit(value, 0);
+
+  value = (value >> 1) | (carry << 7);
+
+  if (value == 0) {
+    setFlag('Z', true);
+  }
+  setFlag('N', false);
+  setFlag('H', false);
+  setFlag('C', carry);
+
+  writeReg(REG_A, value);
+}
+
+void RRA() {
+  uint8_t value = readReg(REG_A);
+  bool carry = getBit(value, 0);
+
+  value = (value >> 1) | (getFlag('C') << 7);
+
+  if (value == 0) {
+    setFlag('Z', true);
+  }
+  setFlag('N', false);
+  setFlag('H', false);
+  setFlag('C', carry);
+
+  writeReg(REG_A, value);
+}
+
+//
+// Bit Opcodes
+//
+
+void BIT(uint8_t bit, uint8_t value) {
+  setFlag('Z', getBit(bit, value));
+  setFlag('N', false);
+  setFlag('H', true);
+}
+
+//
+// Jumps
+//
+
+void JP(uint16_t address) {
+  pc = address;
+}
+
+void JP_NZ(uint16_t address) {
+  if (!getFlag('Z')) {
+    pc = address;
+  }
+}
+
+void JP_Z(uint16_t address) {
+  if (getFlag('Z')) {
+    pc = address;
+  }
+}
+
+void JP_NC(uint16_t address) {
+  if (!getFlag('C')) {
+    pc = address;
+  }
+}
+
+void JP_C(uint16_t address) {
+  if (getFlag('C')) {
+    pc = address;
+  }
 }
 
 void JR(uint8_t offset) {
@@ -1269,34 +1394,6 @@ void JR_NC(uint8_t offset) {
 void JR_C(uint8_t offset) {
   if (getFlag('C')) {
     pc += offset;
-  }
-}
-
-void JP(uint16_t address) {
-  pc = address;
-}
-
-void JP_NZ(uint16_t address) {
-  if (!getFlag('Z')) {
-    pc = address;
-  }
-}
-
-void JP_Z(uint16_t address) {
-  if (getFlag('Z')) {
-    pc = address;
-  }
-}
-
-void JP_NC(uint16_t address) {
-  if (!getFlag('C')) {
-    pc = address;
-  }
-}
-
-void JP_C(uint16_t address) {
-  if (getFlag('C')) {
-    pc = address;
   }
 }
 
@@ -1367,68 +1464,4 @@ void RET_C() {
 void RETI() {
   RET();
   interruptsEnabled = true;
-}
-
-void DAA() {
-  // decimal adjust register A
-}
-
-void CPL() {
-  writeReg(REG_A, ~readReg(REG_B));
-  setFlag('N', true);
-  setFlag('H', true);
-}
-
-void CCF() {
-  setFlag('C', !getFlag('C'));
-  setFlag('N', false);
-  setFlag('H', false);
-}
-
-void SCF() {
-  setFlag('C', true);
-  setFlag('N', false);
-  setFlag('H', false);
-}
-
-void HALT() {
-  // power down cpu until interrupt occurs
-}
-
-void STOP() {
-  // halt cpu and video until button pressed
-}
-
-void DI() {
-  interruptsEnabled = false;
-}
-
-void EI() {
-  interruptsEnabled = true;
-}
-
-void BIT(uint8_t bit, uint8_t value) {
-  setFlag('Z', getBit(bit, value));
-  setFlag('N', false);
-  setFlag('H', true);
-}
-
-void SWAP(registerName reg) {
-  uint8_t value = readReg(reg);
-  uint8_t result = (value << 2) | (value >> 2);
-  writeReg(reg, result);
-  setFlag('Z', result == 0);
-  setFlag('N', 0);
-  setFlag('H', 0);
-  setFlag('C', 0);  
-}
-
-void SWAP_mem(uint16_t address) {
-  uint8_t value = readMemory(address);
-  uint8_t result = (value << 2) | (value >> 2);
-  writeMemory(address, result);
-  setFlag('Z', result == 0);
-  setFlag('N', 0);
-  setFlag('H', 0);
-  setFlag('C', 0);
 }
